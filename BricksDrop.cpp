@@ -13,15 +13,163 @@
 *
 */
 
-
 #include <iostream>
-using namespace std;
 #include <ctime>
+#include <fstream>
+#include <string>
+#include <cstdlib>
+
+using namespace std;
 
 const int ROWS = 10;
 const int COLS = 8;
 
 int score = 0;
+
+
+bool userIdentification()
+{
+    fstream db;
+    ofstream dbInput;
+    string username, password, score;
+    char choice;
+    bool userExists = false;
+    bool isReadyForGame = 0;
+
+    cout << "Welcome! \n";
+    while (true) 
+    {															//loop to re-open the menu after every try
+        cout << "===========================================\nTo REGISTER press 1\nTo LOG IN press 2\nTo EXIT press e\nYour choice: ";
+        cin >> choice;
+
+        if (choice == '1')
+        {													//registration
+            cout << "===========================================\nRegistration\nUsername: ";
+            cin >> username;
+            cout << "Password: ";
+            cin >> password;
+
+            db.open("Database.txt");										//opening a read-only connection to file
+            dbInput.open("Database.txt", ios::app);							//opening a write connection to file
+            if (db.is_open()) 
+            {												//if the connection works execute the code below
+                string line;
+                while (getline(db, line)) 
+                {									//check every line of the file for the registered user
+                    string usernameInFile;
+                    for (int i = 0; i < line.length(); i++)					//get only the username from line in the file
+                    {
+                        if (line[i] == ' ') break;
+                        usernameInFile += line[i];
+                    }
+                    if (username == usernameInFile) {						//check if a username in in the file is equal to entered username. This way a username cannot be used more than once					userExists = true;
+                        userExists = true;
+                        break;
+                    }
+                }
+                if (userExists) 
+                {											//if the user exists go back
+                    cout << "User with that name already exists! Try to log in!\n";
+                    continue;
+                }
+                else if (!userExists) 
+                {										// if user doen's exist create one and close connections
+                    string newUser = username + " - " + password + " - " + "0";
+                    dbInput << newUser << endl;
+                    cout << "Successful registration!\n";
+                    dbInput.close();
+                    db.close();
+                    continue;
+                }
+            }
+            else 
+            {
+                cout << "Database did not open! Exit the program!\n";
+                break;
+            }
+        }
+        else if (choice == '2') 
+        {												//login
+            cout << "===========================================\nPlease, enter username and password\nUsername: ";
+            cin >> username;
+            cout << "Password: ";
+            cin >> password;
+
+            db.open("Database.txt");
+            dbInput.open("Database.txt", ios::app);
+            if (db.is_open()) 
+            {
+                string line;
+                string usernameInFile;
+                while (getline(db, line)) 
+                {									//check if there is an existing user with entered name and password
+                    int count = 0;
+
+                    for (int i = 0; i < line.length(); i++)					//get only the username from line in the file
+                    {
+                        if (line[i] == ' ')
+                        {
+                            count++;
+                        }
+
+
+                        if (count >= 3 && line[i] != ' ' && line[i] != '-')
+                        {
+                            score += line[i];
+                        }
+
+                        usernameInFile += line[i];
+                    }
+
+                    if (usernameInFile == (username + " - " + password + " - " + score)) {
+                        userExists = true;
+                        break;
+                    }
+
+                    score = "";
+                    usernameInFile = "";
+                }
+                if (userExists) 
+                {											//if there is an existing user break the loop and output success
+                    system("CLS");
+                    cout << "You have loged in successfully!\n";  
+                    cout << endl;
+                    isReadyForGame = 1;
+                    //return isReadyForGame;
+                    break;
+                }
+                else if (!userExists) 
+                {										//if there isn't return to menu
+                    cout << "Wrong username or password! Try registering!\n";
+                    score = "";
+                    usernameInFile = "";
+                    dbInput.close();
+                    db.close();
+                    continue;
+                }
+            }
+        }
+
+        else if (choice == 'e')
+        {
+            isReadyForGame = 0;
+            //return isReadyForGame;
+            break;
+        }
+
+        else 
+        {																//if user's input is wrong
+            cout << "Please enter 1 or 2!\n";
+            cin >> choice;
+            continue;
+        }
+    }
+    if (isReadyForGame)
+    {
+        return 1;
+    }
+    return 0;
+}
 
 void initMatrix(char matrix[ROWS][COLS])
 {
@@ -157,7 +305,7 @@ bool checkForDefeat(char matrix[ROWS][COLS])
     {
         cout << endl;
         printMatrix(matrix);
-        cout << "Defeat" << endl;
+        cout << "Defeat" << endl;            
         return 0;
     }
     return 1;
@@ -275,7 +423,7 @@ void moveBrick(char matrix[ROWS][COLS], int row, int startOfBrick, int newDestin
 
 void playerMove(char matrix[ROWS][COLS])
 {
-    cout << "Enter row, start , end:" << endl;
+    cout << "Enter row (9 - 0 starting from the bottom)\nEnter start of a brick (0 - 7 left to right)\nEnter desired new position" << endl;
     int row = 0;
     int startOfBrick = 0;
     int newDestination = 0;
@@ -334,7 +482,7 @@ void addRandomRowLast(char matrix[ROWS][COLS])
             elementSize = random(1, 3);
         }
 
-        bool isElementBrick = random(0, 2);
+        bool isElementBrick = random(0, 3);
 
         if (isElementBrick == 0) //elementsize
         {
@@ -426,7 +574,7 @@ void standartGameLoop(char matrix[ROWS][COLS])
 {
     fullRowDestruction(matrix);
 
-    dropAllRows(matrix);
+   // dropAllRows(matrix);
 
     bricksFall(matrix);
 }
@@ -437,10 +585,15 @@ void BricksDrop(char matrix[ROWS][COLS])
 
     while (checkForDefeat(matrix))
     {
+        system("CLS");
         addRandomRowLast(matrix);
+        printMatrix(matrix);
 
+        system("CLS");
         bricksFall(matrix);
+        printMatrix(matrix);
 
+        system("CLS");
         standartGameLoop(matrix);
 
         printMatrix(matrix);
@@ -449,14 +602,23 @@ void BricksDrop(char matrix[ROWS][COLS])
         cout << endl;
 
         playerMove(matrix);        
+        system("CLS");
+        printMatrix(matrix);
 
-        bricksFall(matrix);       
+
+        bricksFall(matrix);    
+        system("CLS");
+        printMatrix(matrix);
 
         standartGameLoop(matrix);
+        system("CLS");
+        printMatrix(matrix);
 
         pushAllRows(matrix);
 
         nullRow(matrix, 9);
+        system("CLS");
+        printMatrix(matrix);
     }
 }
 
@@ -464,7 +626,9 @@ int main()
 {
     char matrix[10][8] = {};
     srand(time(0));
-
-    BricksDrop(matrix);
+    if (userIdentification())BricksDrop(matrix);
+    
+   
+    return 0;
 }
 
